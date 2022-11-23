@@ -94,13 +94,21 @@ namespace dotnet_rpg.Services.CharacterService
             ServiceResponse<GetCharacterDto> response = new ServiceResponse<GetCharacterDto>();
             try
             {
-                var character = await _context.Characters.FirstOrDefaultAsync(c => c.Id == updatedCharacter.Id);
+                var character = await _context.Characters
+                    .Include(c => c.User) // Include related objects
+                    .FirstOrDefaultAsync(c => c.Id == updatedCharacter.Id);
 
-                _mapper.Map(updatedCharacter, character);
-
-                await _context.SaveChangesAsync();
-
-                response.Data = _mapper.Map<GetCharacterDto>(character);
+                if (character.User.Id == GetUserId())
+                {
+                    _mapper.Map(updatedCharacter, character);
+                    await _context.SaveChangesAsync();
+                    response.Data = _mapper.Map<GetCharacterDto>(character);
+                }
+                else
+                {
+                    response.Success = false;
+                    response.Message = "Character not found.";
+                }
             }
             catch (Exception ex)
             {
